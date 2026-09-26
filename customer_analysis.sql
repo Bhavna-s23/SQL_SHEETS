@@ -35,20 +35,54 @@ from customer
 group by subscription_status
 order by total_revenue, average_spend desc;
 
-
 #Q6. Which 5 products have the highest percentage of purchases with discounts applied?
-
-
+select item_purchased , 
+round(100.0 * sum(case when discount_applied = 'Yes' then 1 else 0 end )/count(*),2) as discount_rate
+from customer 
+group by item_purchased
+order by discount_rate desc
+limit 5;
 
 #Q7. Segment customers into New, Returning, and Loyal based on their total 
 # number of previous purchases, and show the count of each segment. 
+with customer_type as (    # CPE
+select previous_purchases , customer_id,
+case 
+    when previous_purchases = 1 then 'New'
+    when previous_purchases between 2 and 10 then 'Returning'
+    else'Loyal'
+    end as customer_segment
+from customer
+)
+select customer_segment , count(*) as ' Number of Customers'
+from customer_type
+group by customer_segment ;
 
 
 #Q8. What are the top 3 most purchased products within each category? 
-
+# WINDOW FUNCTIONN , CPE
+WITH item_counts AS (
+    SELECT category,
+           item_purchased,
+           COUNT(customer_id) AS total_orders,
+           ROW_NUMBER() OVER (PARTITION BY category ORDER BY COUNT(customer_id) DESC) AS item_rank
+    FROM customer
+    GROUP BY category, item_purchased
+)
+SELECT item_rank,category, item_purchased, total_orders
+FROM item_counts
+WHERE item_rank <=3;
  
 #Q9. Are customers who are repeat buyers (more than 5 previous purchases) also likely to subscribe?
-
+select subscription_status,
+count(customer_id) as repeat_buyer 
+from customer
+where previous_purchases >5
+group by subscription_status ;
 
 #Q10. What is the revenue contribution of each age group? 
-
+ select age_group ,
+ sum(purchase_amount) as total_revenue
+ from customer 
+ group by age_group
+ order by total_revenue desc;
